@@ -22,6 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -122,10 +123,41 @@ func set(t reflect.Type, f reflect.Value, value string) error {
 			return err
 		}
 		f.SetInt(int64(v))
+	case reflect.Slice:
+		// split the environment variable string and check if it is not empty
+		a := strings.Split(value, ",")
+		if len(a) == 0 {
+			return ErrUnsupportedType
+		}
+
+		// create slice based on for defined type
+		v := reflect.MakeSlice(t, len(a), len(a))
+
+		// loop through input, parse to required type and add to the slice
+		elementType := t.Elem().Kind()
+		for index, element := range a {
+			switch elementType {
+				case reflect.String:
+					v.Index(index).Set(reflect.ValueOf(element))
+				case reflect.Int:
+					elementInt, err := strconv.Atoi(element)
+					if err != nil {
+						return ErrUnsupportedType
+					}
+					// f.SetInt(int64(elementInt))
+					// v.Elem().SetInt(int64(elementInt))
+					v.Index(index).SetInt(int64(elementInt))
+				default:
+					return ErrUnsupportedType
+			}
+		}
+
+		// set value
+		f.Set(v)
+
 	default:
 		return ErrUnsupportedType
 	}
-
 	return nil
 }
 
@@ -172,6 +204,35 @@ func Marshal(v interface{}) (EnvSet, error) {
 	for i := 0; i < rv.NumField(); i++ {
 		valueField := rv.Field(i)
 		switch valueField.Kind() {
+		case reflect.Slice:
+			typeField := t.Field(i)
+			tag := typeField.Tag.Get("env")
+			if tag == "" {
+				continue
+			}
+			switch valueField.Type().Elem().Kind() {
+			case reflect.String:
+				slice, ok := valueField.Interface().([]string)
+				if !ok {
+					return nil, ErrUnsupportedType
+				}
+				es[tag] = strings.Join(slice, ",")
+				continue
+			case reflect.Int:
+				slice, ok := valueField.Interface().([]int)
+				if !ok {
+					return nil, ErrUnsupportedType
+				}
+				b := make([]string, len(slice))
+				for i, v := range slice {
+					b[i] = strconv.Itoa(v)
+				}
+				es[tag] = strings.Join(b, ",")
+				continue
+			default:
+				continue
+			}
+			break
 		case reflect.Struct:
 			if !valueField.Addr().CanInterface() {
 				continue

@@ -15,6 +15,7 @@ package env
 
 import (
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -49,6 +50,10 @@ type ValidStruct struct {
 	// Additional supported types
 	Int  int  `env:"INT"`
 	Bool bool `env:"BOOL"`
+
+	// Slices of various types
+	SliceString []string `env:"SLICE_STRING"`
+	SliceInt []int `env:"SLICE_INT"`
 }
 
 type UnsupportedStruct struct {
@@ -66,6 +71,8 @@ func TestUnmarshal(t *testing.T) {
 		"EXTRA":     "extra",
 		"INT":       "1",
 		"BOOL":      "true",
+		"SLICE_STRING": "string1,string2,string3",
+		"SLICE_INT": "1,2,3",
 	}
 
 	var validStruct ValidStruct
@@ -96,6 +103,16 @@ func TestUnmarshal(t *testing.T) {
 
 	if validStruct.Bool != true {
 		t.Errorf("Expected field value to be '%t' but got '%t'", true, validStruct.Bool)
+	}
+
+	stringSlice := []string{"string1","string2","string3"}
+	if !reflect.DeepEqual(validStruct.SliceString, stringSlice) {
+		t.Errorf("Expected field value to be '%s' but got '%s'", validStruct.SliceString, stringSlice)
+	}
+
+	intSlice := []int{1,2,3}
+	if !reflect.DeepEqual(validStruct.SliceInt, intSlice) {
+		t.Errorf("Expected field value to be '%d' but got '%d'", validStruct.SliceInt, intSlice)
 	}
 
 	v, ok := environ["HOME"]
@@ -229,6 +246,8 @@ func TestMarshal(t *testing.T) {
 		Extra: "extra",
 		Int:   1,
 		Bool:  true,
+		SliceString: []string{"string1","string2","string3"},
+		SliceInt: []int{1,2,3},
 	}
 
 	environ, err := Marshal(&validStruct)
@@ -254,6 +273,22 @@ func TestMarshal(t *testing.T) {
 
 	if environ["BOOL"] != "true" {
 		t.Errorf("Expected field value to be '%s' but got '%s'", "true", environ["BOOL"])
+	}
+
+	if environ["BOOL"] != "true" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "true", environ["BOOL"])
+	}
+
+	if environ["BOOL"] != "true" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "true", environ["BOOL"])
+	}
+
+	if environ["SLICE_STRING"] != "string1,string2,string3" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "string1,string2,string3", environ["SLICE_STRING"])
+	}
+
+	if environ["SLICE_INT"] != "1,2,3" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "1,2,3", environ["SLICE_INT"])
 	}
 }
 
