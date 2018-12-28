@@ -144,8 +144,6 @@ func set(t reflect.Type, f reflect.Value, value string) error {
 					if err != nil {
 						return ErrUnsupportedType
 					}
-					// f.SetInt(int64(elementInt))
-					// v.Elem().SetInt(int64(elementInt))
 					v.Index(index).SetInt(int64(elementInt))
 				default:
 					return ErrUnsupportedType
